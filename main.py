@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
-from flask import Flask, Response
-from tarfile import TarFile
+from os import path
 import io
 from pathlib import Path
+
+from flask import Flask, Response
+from tarfile import TarFile
+
+from lib.misc import *
 
 
 class Config:
@@ -13,7 +17,7 @@ class Config:
 
 CONFIG = Config()
 
-
+LOCAL_PWD = path.dirname(path.realpath(__file__))
 app = Flask(__name__)
 
 
@@ -38,12 +42,17 @@ def pull(hostname: str = None):
     return Response(io_stream.read1(), mimetype='application/x-tar')
 
 
-@app.route('/startup_script/<hostname>')
+@app.route('/startup-script/<hostname>')
 def startup_script(hostname: str = None):
-    
+    with open(f"{LOCAL_PWD}/templates/startup-script.sh.j2") as f:
+        return Response(f.read() ,mimetype='application/x-sh')
 
 
 def main():
+    with open(f"{LOCAL_PWD}/templates/ssh_config.j2") as f:
+        insert_text_block(f"{Path.home().__str__()}/.ssh/config",
+                          f.read())
+
     app.run(host="localhost",
             port=CONFIG.port,
             debug=False)
