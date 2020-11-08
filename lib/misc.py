@@ -1,6 +1,10 @@
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
 import re
+import sys
+import logging as logger
+from jinja2 import Template, Environment, StrictUndefined
+from jinja2.exceptions import UndefinedError
 
 
 def insert_text_block(path: str, insert_text: str, identity: str = "TEXT BLOCK"):
@@ -33,5 +37,19 @@ def insert_text_block(path: str, insert_text: str, identity: str = "TEXT BLOCK")
     if context != new_context:
         with open(path, 'w') as f:
             f.write(new_context)
+
+
+def template(filename: str, **kwargs) -> str:
+    with open(filename) as f:
+        template = Template(f.read())
+        template.environment.undefined = StrictUndefined
+        
+        try:
+            return template.render(**kwargs)
+        except UndefinedError as e:
+            logger.error(e)
+            return ''
+
+
 
 

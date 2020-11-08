@@ -1,15 +1,40 @@
 #!/usr/bin/env sh
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
-SHELL=fish
-PORT=7654
+set -xeu
+
+PORT='{{ config.port }}'
 HOSTNAME="$(hostname)"
+DOT_FILE_PATH="{{ config.shell.dot_file_path }}"
 
-curl --silent --show-error "http://localhost:${PORT}/pull/${HOSTNAME}" | tar -tv
+curl --silent --show-error "http://localhost:${PORT}/pull/${HOSTNAME}" | tar -tv > /dev/null
 
-if which -- "${SHELL}"; then
-    "${SHELL}"
-else
-    bash
+{% if distro_id in [ 'arch' ] %}
+if ! pacman -Q {{ packages | join(' ') }} > /dev/null; then
+    {% if password %}
+    echo '{{ password }}' | \
+        sudo -S pacman -Sy --noconfirm --needed {{ packages | join(' ') }}
+    {% else %}
+    >&2 echo    "SOME PACKAGES ARE MISSING, RUN THE FOLLOWING COMMAND TO INSTALL THEM:"
+    >&2 echo -e "  sudo pacman -Sy --noconfirm --needed {{ packages | join(' ') }}\n"
+    {% endif %}
 fi
+{% elif distro_id in [ 'ubuntu' ] %}
+if [ "$(dpkg --list {{ packages | join(' ') }} | grep '^ii' | wc -l)" \
+    -lt {{ packages | count }} ]; then
+    {% if password %}
+    echo '{{ password }}' | sudo -S apt-get update 
+    echo '{{ password }}' | sudo -S apt-get install --yes {{ packages | join(' ') }}
+    {% else %}
+    >&2 echo    "SOME PACKAGES ARE MISSING, RUN THE FOLLOWING COMMAND TO INSTALL THEM:"
+    >&2 echo -e "  sudo apt update && sudo apt install --yes { packages | join(' ') }}\n"
+    {% endif %}
+fi
+{% endif %}
+
+
+# Leave a timestamp last update
+>&2 echo "Updated the HOME environment, you are welcome ;)"
+mkdir -p "$(dirname "${HOME}/${DOT_FILE_PATH}")"
+date --iso-8601=s > "${HOME}/${DOT_FILE_PATH}"
 

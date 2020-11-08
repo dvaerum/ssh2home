@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
+
+set -eu
+
+echo "SHELL=$({% for shell in shells %}{{ "which -- '{}' || ".format(shell) }}{% endfor %} which -- 'sh')"
+if [ -f '{{ dot_file_path }}' ]; then
+    echo "ISO_8601=$(cat '{{ dot_file_path }}')"
+fi
+echo "UPDATE_INTERVAL={{ update_interval * 3600 | int }}"
+cat "/etc/os-release"

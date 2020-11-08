@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
+import os
 from os import path
 import io
 from pathlib import Path
@@ -11,8 +12,23 @@ from tarfile import TarFile
 from lib.misc import *
 
 
+class Shell:
+    dot_file_path = ".config/.dot-files-timestamp"
+    shells = [ "fish", "bash" ]
+    update_interval = 0 # Hours
+
+
 class Config:
     port = 7654
+    ssh_bin = "ssh"
+    shell = Shell()
+    packages = {
+        'tmux': True,
+        'vim': True,
+        'python': [ 'arch' ],
+        'python3': [ 'ubuntu' ]
+    }
+    password = 'I am your GOD!'
 
 
 CONFIG = Config()
@@ -43,16 +59,38 @@ def pull(hostname: str = None):
 
 
 @app.route('/startup-script/<hostname>')
-def startup_script(hostname: str = None):
-    with open(f"{LOCAL_PWD}/templates/startup-script.sh.j2") as f:
-        return Response(f.read() ,mimetype='application/x-sh')
+@app.route('/startup-script/<hostname>/')
+@app.route('/startup-script/<hostname>/<id>')
+def startup_script(hostname: str = None, id: str = None):
+    _packages = [package for package,distro in CONFIG.packages.items()
+        if not isinstance(distro, list) or id in distro]
+
+    script = template(f"{LOCAL_PWD}/templates/startup-script.sh.j2",
+                      config=CONFIG,
+                      distro_id=id,
+                      packages=_packages,
+                      password=CONFIG.password)
+    return Response(script ,mimetype='application/x-sh')
 
 
 def main():
-    with open(f"{LOCAL_PWD}/templates/ssh_config.j2") as f:
-        insert_text_block(f"{Path.home().__str__()}/.ssh/config",
-                          f.read())
+    # Include reverse proxy in all ssh connections
+    insert_text_block(f"{Path.home().__str__()}/.ssh/config",
+                      template(f"{LOCAL_PWD}/templates/ssh_config.j2"))
 
+    # Create environment variable file
+    tmp_path = f"/tmp/{os.getlogin()}"
+    os.makedirs(tmp_path, mode=0o700, exist_ok=True)
+    with open(f"{tmp_path}/env", 'w') as f:
+        f.write(f"PORT={CONFIG.port}\nSSH_BIN_PATH={CONFIG.ssh_bin}\n")
+
+    with open(f"{tmp_path}/check_shells.sh", 'w') as f:
+        f.write(template(f"{LOCAL_PWD}/templates/check_shells.sh.j2",
+                         shells        = CONFIG.shell.shells,
+                         dot_file_path = CONFIG.shell.dot_file_path,
+                         update_interval = CONFIG.shell.update_interval))
+
+    # Start web server
     app.run(host="localhost",
             port=CONFIG.port,
             debug=False)
