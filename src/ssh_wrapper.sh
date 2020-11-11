@@ -75,7 +75,7 @@ if [ -n "${DEBUG}" ]; then
     >&2 echo "ISO_8601: '${ISO_8601:-}'"
 fi
 
-if [ $(expr $(date --date=${ISO_8601:-0} '+%s') + ${UPDATE_INTERVAL:-0}) -lt $(date '+%s') ]; then
+if [ "$(expr "$(date --date=${ISO_8601:-1970-01-01} '+%s')" + ${UPDATE_INTERVAL:-0})" -lt "$(date '+%s')" ]; then
     curl --location \
          --silent \
          --show-error \

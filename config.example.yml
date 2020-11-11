@@ -1,0 +1,34 @@
+---
+# ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=2 smarttab:
+
+# The Port for the reverse tunnels
+port: 7654
+
+# The path for the ssh binary you want to use
+ssh_bin: ssh
+
+# Packages you want to have installed on the system
+packages:
+  tmux: True
+  vim: True
+  python:
+    - arch
+  python3:
+    - ubuntu
+
+password: 
+
+files:
+  - .vimrc
+  - src: .vim
+    dst: .vim
+
+shell:
+  dot_file_path: ".config/.dot-files-timestamp"
+  shells:
+    - fish
+    - bash
+
+  # Hours between updating your home folder, set to zero (0) to always update
+  update_interval: 48
+

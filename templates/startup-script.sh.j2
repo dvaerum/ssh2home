@@ -1,13 +1,13 @@
 #!/usr/bin/env sh
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
-set -xeu
+set -eu
 
 PORT='{{ config.port }}'
 HOSTNAME="$(hostname)"
 DOT_FILE_PATH="{{ config.shell.dot_file_path }}"
 
-curl --silent --show-error "http://localhost:${PORT}/pull/${HOSTNAME}" | tar -tv > /dev/null
+curl --silent --show-error "http://localhost:${PORT}/pull/${HOSTNAME}" | tar -x > /dev/null
 
 {% if distro_id in [ 'arch' ] %}
 if ! pacman -Q {{ packages | join(' ') }} > /dev/null; then

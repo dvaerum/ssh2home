@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ex: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab:
 
 import os
@@ -10,30 +10,11 @@ from flask import Flask, Response
 from tarfile import TarFile
 
 from lib.misc import *
+from lib.config import Config
 
-
-class Shell:
-    dot_file_path = ".config/.dot-files-timestamp"
-    shells = [ "fish", "bash" ]
-    update_interval = 0 # Hours
-
-
-class Config:
-    port = 7654
-    ssh_bin = "ssh"
-    shell = Shell()
-    packages = {
-        'tmux': True,
-        'vim': True,
-        'python': [ 'arch' ],
-        'python3': [ 'ubuntu' ]
-    }
-    password = 'I am your GOD!'
-
-
-CONFIG = Config()
 
 LOCAL_PWD = path.dirname(path.realpath(__file__))
+CONFIG = Config(path=f'{LOCAL_PWD}/config.yml')
 app = Flask(__name__)
 
 
@@ -50,9 +31,14 @@ def pull(hostname: str = None):
     io_stream = io.BytesIO()
 
     tar = TarFile(fileobj=io_stream, mode="w")
-    for file_path in [".vimrc", ".vim"]:
-        tar.add(name=f"{home_dir}/{file_path}",
-                arcname=file_path)
+    for file_path in CONFIG.files + CONFIG.host_files.get(hostname, []):
+        if isinstance(file_path, str):
+            tar.add(name=f"{home_dir}/{file_path}",
+                    arcname=file_path)
+        elif isinstance(file_path, dict):
+            tar.add(name=f"{home_dir}/{file_path['src']}",
+                    arcname=file_path['dst'])
+
     tar.close()
     io_stream.seek(0)
     return Response(io_stream.read1(), mimetype='application/x-tar')
